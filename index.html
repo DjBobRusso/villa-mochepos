@@ -498,15 +498,21 @@ function saveDB(){
     DB._lastModified=Date.now();
     localStorage.setItem('vmDB',JSON.stringify(DB));
     try{if(window.kitchenChannel)kitchenChannel.postMessage({type:'db-updated',timestamp:Date.now()})}catch(e){}
-    if(_apiAvail){
-        try{
-            var x=new XMLHttpRequest();
-            x.open('POST','api.php',true);
-            x.setRequestHeader('Content-Type','application/json');
-            x.onload=function(){if(x.status===200)try{var r=JSON.parse(x.responseText);if(r.timestamp)dbLastSync=r.timestamp}catch(e){}};
-            x.send(JSON.stringify(DB));
-        }catch(e){}
-    }
+    var payload=JSON.stringify(DB);
+    // Intenta servidor local primero (api.php relativo)
+    try{
+        var x=new XMLHttpRequest();
+        x.open('POST','api.php',true);
+        x.setRequestHeader('Content-Type','application/json');
+        x.send(payload);
+    }catch(e){}
+    // Tambien intenta la IP local directa (para cuando estamos en GitHub Pages y hay XAMPP en la red local)
+    try{
+        var x2=new XMLHttpRequest();
+        x2.open('POST','http://10.95.187.234/api.php',true);
+        x2.setRequestHeader('Content-Type','application/json');
+        x2.send(payload);
+    }catch(e){}
 }
 function loadDB(){
     var local=localStorage.getItem('vmDB');
@@ -3084,42 +3090,50 @@ if(!window._publicMesaId){
 // Guardar datos iniciales (para nuevos despliegues sin datos previos)
 if(!dbLoaded)saveDB();
 
-// Detectar si api.php esta disponible (servidor local con PHP) y activar polling cross-device
-setTimeout(function(){
+// Detectar servidor backend (api.php) y activar polling cross-device
+function tryConnectAPI(url,startPoll){
     var x=new XMLHttpRequest();
-    x.open('GET','api.php?_='+Date.now(),true);
+    x.open('GET',url+'?_='+Date.now(),true);
     x.onload=function(){
         if(x.status===200){
             _apiAvail=true;
-            // Polling cada 3s si hay servidor disponible
-            setInterval(function(){
-                var px=new XMLHttpRequest();
-                px.open('GET','api.php?_='+Date.now(),true);
-                px.onload=function(){
-                    if(px.status===200&&px.responseText&&px.responseText!=='null'){
-                        try{
-                            var d=JSON.parse(px.responseText);
-                            if(d&&d._lastModified&&d._lastModified>=(DB._lastModified||0)+1){
-                                var prevRoute=null;
-                                var activeEl=document.querySelector('.menu-item.active');
-                                if(activeEl)prevRoute=activeEl.getAttribute('data-route');
-                                Object.assign(DB,d);
-                                localStorage.setItem('vmDB',JSON.stringify(DB));
-                                if(prevRoute&&currentUser){
-                                    navigateTo(prevRoute);
-                                    addNotif('cloud-arrow-alt','#6DAE4A','Datos sincronizados desde otro dispositivo');
+            // Re-guardar datos ahora que hay servidor disponible (puede que saveDB() anterior no tuviera servidor)
+            saveDB();
+            if(startPoll){
+                // Polling cada 3s
+                setInterval(function(){
+                    var px=new XMLHttpRequest();
+                    px.open('GET',url+'?_='+Date.now(),true);
+                    px.onload=function(){
+                        if(px.status===200&&px.responseText&&px.responseText!=='null'){
+                            try{
+                                var d=JSON.parse(px.responseText);
+                                if(d&&d._lastModified&&d._lastModified>=(DB._lastModified||0)+1){
+                                    var prevRoute=null;
+                                    var activeEl=document.querySelector('.menu-item.active');
+                                    if(activeEl)prevRoute=activeEl.getAttribute('data-route');
+                                    Object.assign(DB,d);
+                                    localStorage.setItem('vmDB',JSON.stringify(DB));
+                                    if(prevRoute&&currentUser){
+                                        navigateTo(prevRoute);
+                                        addNotif('cloud-arrow-alt','#6DAE4A','Datos sincronizados desde otro dispositivo');
+                                    }
                                 }
-                            }
-                        }catch(e){}
-                    }
-                };
-                px.send();
-            },3000);
+                            }catch(e){}
+                        }
+                    };
+                    px.send();
+                },3000);
+            }
         }
     };
-    x.onerror=function(){_apiAvail=false};
+    x.onerror=function(){};
     x.send();
-},1000);
+}
+// Primero intenta api.php relativo (mismo origen)
+setTimeout(function(){tryConnectAPI('api.php',true)},500);
+// Si estamos en GitHub Pages, intenta tambien el servidor local via IP (si esta disponible)
+tryConnectAPI('http://10.95.187.234/api.php',false);
 </script>
 </body>
 </html>
