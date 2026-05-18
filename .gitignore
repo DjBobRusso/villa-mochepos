@@ -8,8 +8,10 @@ Thumbs.db
 server/
 villa-moche/
 
+# Data storage
+data.json
+
 # XAMPP default files
-api.php
 applications.html
 bitnami.css
 favicon.ico
