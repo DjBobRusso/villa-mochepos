@@ -1,5 +1,20 @@
-server/node_modules/
-server/package-lock.json
-server/*.log
+# Project files
+node_modules/
+*.log
+package-lock.json
 .DS_Store
 Thumbs.db
+.vscode/
+server/
+villa-moche/
+
+# XAMPP default files
+api.php
+applications.html
+bitnami.css
+favicon.ico
+install.php
+img/
+dashboard/
+xampp/
+webalizer/
