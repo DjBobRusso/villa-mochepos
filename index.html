@@ -2661,7 +2661,7 @@ function sendOrder(tableId){
         logAudit(currentUser.id,'Envio de pedido','Mesa '+table.name+': '+orderQty+' items, total S/ '+orderTotal.toFixed(2)+' ('+msgParts.join(' | ')+')');
         if(kitchenItems.length)try{if(kitchenChannel)kitchenChannel.postMessage({type:'new-order',orderId:table.orderId,tableName:table.name})}catch(e){}
         try{if(window.kitchenChannel)kitchenChannel.postMessage({type:'new-order-caja',tableId:table.id})}catch(e){}
-        closeModal();playBeep();showToast(msgParts.join(' | '),'success');renderMozoPedidos();
+        saveDB();closeModal();playBeep();showToast(msgParts.join(' | '),'success');renderMozoPedidos();
     }catch(e){
         console.error('Error en sendOrder:',e);
         if(menuDeducted){allItems.forEach(function(i){var m=DB.menu.find(function(x){return x.id===i.menuId});if(m)m.stock+=i.qty})}
