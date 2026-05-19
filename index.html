@@ -536,7 +536,7 @@ DB.printers.push({id:DB.counters.printer++,name:'Facturacion',type:'termica',mod
 })();
 
 var currentUser=null,kitchenTimers=[],kitchenSoundQueue=[],kitchenSoundPlaying=false,kitchenKnownOrderIds=[],kitchenPollInterval=null,currentReportFilter='month',currentReportTable='all',bulkRecipeData={},currentCalendarMonth=new Date(),currentInvTab='insumos',currentResZone='all',resNotificationTimer=null,resAutoReleaseTimer=null,currentApertura=null;
-try{var kitchenChannel=new BroadcastChannel('villa-moche-pos');kitchenChannel.onmessage=function(e){if(!e.data)return;var d=e.data;if(d.type==='new-order'){var active=document.querySelector('.menu-item.active');if(active&&active.getAttribute('data-route')==='cocina-pedidos'){renderCocinaPedidos()}else{playKitchenAlert()}}else if(d.type==='new-order-caja'){var cajaActive=document.querySelector('.menu-item.active');if(cajaActive&&cajaActive.getAttribute('data-route')==='cajera-caja')renderCajeraCaja()}else if(d.type==='order-cancelled'||d.type==='order-closed'){var route=document.querySelector('.menu-item.active');if(route){var r=route.getAttribute('data-route');if(r==='cocina-pedidos')renderCocinaPedidos();else if(r==='cajera-caja')renderCajeraCaja();else if(r==='mozo-pedidos')renderMozoPedidos()}}};}catch(e){};window.addEventListener('storage',function(e){if(e.key===undefined||e.key===null){var active=document.querySelector('.menu-item.active');if(active&&active.getAttribute('data-route')==='cocina-pedidos'){renderCocinaPedidos()}}});
+try{var kitchenChannel=new BroadcastChannel('villa-moche-pos');kitchenChannel.onmessage=function(e){if(!e.data)return;var d=e.data;if(d.type==='new-order'){var active=document.querySelector('.menu-item.active');if(active&&active.getAttribute('data-route')==='cocina-pedidos'){renderCocinaPedidos()}else{playKitchenAlert()}}else if(d.type==='new-order-caja'){var cajaActive=document.querySelector('.menu-item.active');if(cajaActive&&cajaActive.getAttribute('data-route')==='cajera-caja')renderCajeraCaja()}else if(d.type==='order-cancelled'||d.type==='order-closed'){var route=document.querySelector('.menu-item.active');if(route){var r=route.getAttribute('data-route');if(r==='cocina-pedidos')renderCocinaPedidos();else if(r==='cajera-caja')renderCajeraCaja();else if(r==='mozo-pedidos')renderMozoPedidos()}}};}catch(e){};window.addEventListener('storage',function(e){if(e.key==='villaMocheDB_updated'||e.key==='villaMocheDB'){try{var saved=localStorage.getItem('villaMocheDB');if(saved){var parsed=JSON.parse(saved);Object.keys(parsed).forEach(function(k){DB[k]=parsed[k]});var active=document.querySelector('.menu-item.active');if(active){var r=active.getAttribute('data-route');if(r==='cocina-pedidos')renderCocinaPedidos();else if(r==='cajera-caja')renderCajeraCaja();else if(r==='mozo-pedidos')renderMozoPedidos()}}}catch(e){}}});function saveDB(){try{DB._syncTS=Date.now();localStorage.setItem('villaMocheDB',JSON.stringify(DB));localStorage.setItem('villaMocheDB_updated',DB._syncTS.toString());try{var x=new XMLHttpRequest();x.open('POST','api.php',true);x.setRequestHeader('Content-Type','application/json');x.timeout=3000;x.send(JSON.stringify(DB))}catch(e){}}catch(e){}}function loadDB(){try{var saved=localStorage.getItem('villaMocheDB');if(saved){var parsed=JSON.parse(saved);Object.keys(parsed).forEach(function(k){DB[k]=parsed[k]})}}catch(e){}}function startCrossDeviceSync(){if(window._syncInterval)return;window._syncInterval=setInterval(function(){try{var x=new XMLHttpRequest();x.open('GET','api.php?'+Date.now(),true);x.timeout=5000;x.onload=function(){if(x.status===200&&x.responseText){try{var remote=JSON.parse(x.responseText);if(remote&&remote._syncTS){var localTS=parseInt(localStorage.getItem('villaMocheDB_updated'))||0;if(remote._syncTS>localTS){Object.keys(remote).forEach(function(k){DB[k]=remote[k]});localStorage.setItem('villaMocheDB',x.responseText);localStorage.setItem('villaMocheDB_updated',remote._syncTS.toString());var active=document.querySelector('.menu-item.active');if(active){var r=active.getAttribute('data-route');if(r==='cocina-pedidos')renderCocinaPedidos();else if(r==='cajera-caja')renderCajeraCaja();else if(r==='mozo-pedidos')renderMozoPedidos()}}}}}}catch(e){}};x.send()}catch(e){}},3000)}
 
 function showToast(m,t,d){t=t||'success';d=d||4500;var c=document.getElementById('toastContainer'),e=document.createElement('div');e.className='toast '+t;var icon=t==='success'?'check-circle':t==='warning'?'exclamation-triangle':t==='info'?'info-circle':'times-circle';e.innerHTML='<div style="display:flex;align-items:center;gap:10px;width:100%"><i class="fas fa-'+icon+'"></i><span style="flex:1">'+m+'</span></div><div class="toast-progress" style="position:absolute;bottom:0;left:0;height:3px;background:rgba(255,255,255,.35);border-radius:0 0 8px 8px;width:100%;animation:shrink '+d/2+'ms linear forwards"></div>';c.appendChild(e);try{playSound(t)}catch(ex){}setTimeout(function(){e.style.transform='translateX(100%)';e.style.opacity='0';e.style.transition='all .3s';setTimeout(function(){if(e.parentNode)e.remove()},300)},d);if(c.children.length>4)setTimeout(function(){if(c.firstChild)c.firstChild.remove()},100)}
 function updateClock(){document.getElementById('clock').textContent=new Date().toLocaleString('es-PE',{hour:'2-digit',minute:'2-digit',second:'2-digit',day:'2-digit',month:'2-digit'})}
@@ -2629,7 +2629,7 @@ function sendOrder(tableId){
         logAudit(currentUser.id,'Envio de pedido','Mesa '+table.name+': '+orderQty+' items, total S/ '+orderTotal.toFixed(2)+' ('+msgParts.join(' | ')+')');
         if(kitchenItems.length)try{if(kitchenChannel)kitchenChannel.postMessage({type:'new-order',orderId:table.orderId,tableName:table.name})}catch(e){}
         try{if(window.kitchenChannel)kitchenChannel.postMessage({type:'new-order-caja',tableId:table.id})}catch(e){}
-        closeModal();playBeep();showToast(msgParts.join(' | '),'success');renderMozoPedidos();
+        saveDB();closeModal();playBeep();showToast(msgParts.join(' | '),'success');renderMozoPedidos();
     }catch(e){
         console.error('Error en sendOrder:',e);
         if(menuDeducted){allItems.forEach(function(i){var m=DB.menu.find(function(x){return x.id===i.menuId});if(m)m.stock+=i.qty})}
@@ -2977,10 +2977,10 @@ function confirmarCobro(tableId){
     t.status='libre';t.mozoId=null;t.orderId=null;
     logAudit(currentUser.id,'Cobro confirmado','Mesa '+t.name+': S/ '+(o.total||0).toFixed(2)+', metodo: '+pm+(invDoc?' / Doc: '+invDoc:'')+(invName?' / Cliente: '+invName:''));
     try{if(window.kitchenChannel)kitchenChannel.postMessage({type:'order-closed',tableId:tableId})}catch(e){}
-    playBeep(600,.3);closeModal();showToast('Mesa cobrada ('+pm+')');renderCajeraCaja();
+    saveDB();playBeep(600,.3);closeModal();showToast('Mesa cobrada ('+pm+')');renderCajeraCaja();
 }
 
-function anularPedidoCajera(tableId){actionWithPassword('Anular Pedido','Se cancelara el pedido, se devolvera el stock a la carta y se liberara la mesa.',function(){var t=DB.tables.find(function(x){return x.id===tableId});var o=DB.orders.find(function(x){return x.id===t.orderId});if(o){o.items.forEach(function(i){var m=DB.menu.find(function(x){return x.id===i.menuId});if(m)m.stock+=i.qty});logAudit(currentUser.id,'Anulacion de pedido (cajera)','Mesa '+t.name+': pedido '+o.id+' cancelado, stock devuelto');DB.orders=DB.orders.filter(function(x){return x.id!==t.orderId})}t.status='libre';t.mozoId=null;t.orderId=null;closeModal();showToast('Pedido anulado. Stock devuelto.','warning');renderCajeraCaja()})}
+function anularPedidoCajera(tableId){actionWithPassword('Anular Pedido','Se cancelara el pedido, se devolvera el stock a la carta y se liberara la mesa.',function(){var t=DB.tables.find(function(x){return x.id===tableId});var o=DB.orders.find(function(x){return x.id===t.orderId});if(o){o.items.forEach(function(i){var m=DB.menu.find(function(x){return x.id===i.menuId});if(m)m.stock+=i.qty});logAudit(currentUser.id,'Anulacion de pedido (cajera)','Mesa '+t.name+': pedido '+o.id+' cancelado, stock devuelto');DB.orders=DB.orders.filter(function(x){return x.id!==t.orderId})}t.status='libre';t.mozoId=null;t.orderId=null;saveDB();closeModal();showToast('Pedido anulado. Stock devuelto.','warning');renderCajeraCaja()})}
 
 /* ===== CARTA DIGITAL PUBLICA ===== */
 var publicCart={};
@@ -3050,10 +3050,13 @@ try{
     var mesaParam=(window.location.search.match(/[?&]mesa=(\d+)/)||[])[1];
     if(mesaParam){initPublicMenu(parseInt(mesaParam))}
 }catch(e){}
+// Cargar datos guardados y sincronizar
+loadDB();
 // Restaurar sesion (solo si no estamos en modo publico)
 if(!window._publicMesaId){
     try{var sess=sessionStorage.getItem('villaMocheSession');if(sess){var s=JSON.parse(sess);var u=DB.users.find(function(x){return x.id===s.userId});if(u){currentUser=u;completeLogin()}}}catch(e){}
 }
+startCrossDeviceSync();
 </script>
 </body>
 </html>
